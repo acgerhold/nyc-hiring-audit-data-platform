@@ -20,4 +20,4 @@ Real-time event-driven data platform for auditing NYC government hiring practice
 - Automated detection of hiring discrepancies
 - Salary benchmarking against market data
 - Job posting duration analysis
-- Match ratio scoring for data quality assessment
+- Match ratio scoring for data quality assessment 
