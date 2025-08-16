@@ -4,3 +4,6 @@ class Config:
 
     NYC_OPENDATA_JOB_POSTINGS_DATA_DICT = 'https://data.cityofnewyork.us/api/views/kpav-sd4t/files/247a3fc0-06b5-45a2-b739-11db5cdc5e1c?download=true&filename=Jobs%20NYC%20Postings_Data%20Dictionary.xlsx'
     NYC_OPENDATA_JOB_POSTINGS_DATA = 'https://data.cityofnewyork.us/api/views/kpav-sd4t/rows.csv?accessType=DOWNLOAD'
+
+    DATA_PATH = "data"
+    CHUNK_SIZE = 102400
