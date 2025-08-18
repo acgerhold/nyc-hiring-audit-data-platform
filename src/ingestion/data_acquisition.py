@@ -4,8 +4,11 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.utils.logger import setup_logger
 from src.ingestion.config import Config
+
+logger = setup_logger('ingestion', 'ingestion.log')
 
 @contextmanager
 def timer():
@@ -26,45 +29,38 @@ def get_output_path(filename):
 
 # Keeping local folders as output paths for now for traceability
 # May switch to temp directories later
-def download_files(urls: dict):
-    logger = setup_logger('ingestion', 'ingestion.log')
-    events = []
-    for url, filename in urls.items():
-        output_path = get_output_path(filename)
-        try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
-            total = int(response.headers.get('content-length', 0))
-            with timer() as elapsed:
-                with open(output_path, 'wb') as f, tqdm(total=total, unit='B', unit_scale=True, desc='Downloading') as pbar:
-                    for chunk in response.iter_content(chunk_size=Config.CHUNK_SIZE):
-                        if chunk:
-                            f.write(chunk)
-                            pbar.update(len(chunk))
-            elapsed_time = elapsed()
-            file_size = os.path.getsize(output_path)
+def download_file(url, filename):
+    output_path = get_output_path(filename)
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        total = int(response.headers.get('content-length', 0))
+        with timer() as elapsed:
+            with open(output_path, 'wb') as f, tqdm(total=total, unit='B', unit_scale=True, desc=f'Downloading {filename}') as pbar:
+                for chunk in response.iter_content(chunk_size=Config.CHUNK_SIZE):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+        elapsed_time = elapsed()
+        file_size = os.path.getsize(output_path)
 
-            logger.info(f"Download complete: {output_path}")
-            event = {
-                "filename": filename,
-                "path": output_path,
-                "status": "downloaded",
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-            events.append(event)
-
-            logger.info(f"File size: {file_size / (1024*1024):.2f} MB")
-            logger.info(f"Elapsed time: {elapsed_time:.2f} seconds")
-        except Exception as e:
-            logger.error(f"Download failed: {output_path}")
-            event = {
-                "filename": filename,
-                "path": output_path,
-                "status": "failed",
-                "exception": e,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
-            events.append(event)
-            raise
-
-    return events
+        logger.info(f"Download complete: {output_path}")
+        event = {
+            "filename": filename,
+            "path": output_path,
+            "status": "downloaded",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        logger.info(f"File size: {file_size / (1024*1024):.2f} MB")
+        logger.info(f"Elapsed time: {elapsed_time:.2f} seconds")
+        return event
+    except Exception as e:
+        logger.error(f"Download failed: {output_path}")
+        event = {
+            "filename": filename,
+            "path": output_path,
+            "status": "failed",
+            "exception": str(e),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        return event
