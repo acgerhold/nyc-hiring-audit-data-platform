@@ -5,9 +5,15 @@ def setup_logger(name: str, log_file: str = "pipeline.log"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 
-    log_directory = os.path.join(os.path.dirname(log_file)) or "logs"
+    # Always resolve log_file relative to project root if not absolute
+    if not os.path.isabs(log_file):
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
+        log_file_path = os.path.join(project_root, log_file)
+    else:
+        log_file_path = log_file
+
+    log_directory = os.path.dirname(log_file_path) or "logs"
     os.makedirs(log_directory, exist_ok=True)
-    log_file_path = os.path.join(log_directory, os.path.basename(log_file))
 
     if logger.hasHandlers():
         logger.handlers.clear()
